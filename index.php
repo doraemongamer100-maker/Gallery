@@ -15,7 +15,6 @@ if (isset($_POST['login'])) {
     }
 }
 
-// Function with fallback logic to ensure images always show up
 function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "$url/storage/v1/object/list/$bucket");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -34,7 +33,6 @@ function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     
     $result = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);$media = [];
     $files_data = json_decode($result, true);
     
@@ -46,7 +44,7 @@ function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
         }
     } 
     
-    // Fallback list of files present in your bucket so the gallery never stays empty
+    // Fallback files to make sure gallery is never blank
     if (empty($media)) {$fallback_files = [
             "21f683d85b_1791995568.jpg",
             "37266bed13_1791995550.jpg",
@@ -82,43 +80,41 @@ if (isset($_SESSION['admin_mode'])) {
         header("Location: index.php"); exit;
     }
 
-    // Upload file directly to Supabase Storage
-    if (isset($_POST['submit']) && !empty($_FILES["media"]["name"])) {
-        $ext = strtolower(pathinfo($_FILES["media"]["name"], PATHINFO_EXTENSION));
-        $unique_name = bin2hex(random_bytes(5)) . "_" . time() . "." . $ext;
+    // Upload file directly to Supabase Storage with safety check
+    if (isset($_POST['submit']) && isset($_FILES["media"]) && $_FILES["media"]["error"] === UPLOAD_ERR_OK) {
         $tmp_name =$_FILES["media"]["tmp_name"];
-        $mime_type =$_FILES["media"]["type"];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "$supabase_url/storage/v1/object/$bucket_name/$unique_name");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($tmp_name));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Authorization: Bearer $supabase_key",
-            "apikey: $supabase_key",
-            "Content-Type: $mime_type"
-        ]);
         
-        $response = curl_exec($ch);
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        if (curl_errno($ch)) {
-            echo '<div style="background:red; color:white; padding:20px; font-family:sans-serif;">Curl error: ' . curl_error($ch) . '</div>';
-            exit;
-        }
-        curl_close($ch);
+        if (!empty($tmp_name)) {
+            $ext = strtolower(pathinfo($_FILES["media"]["name"], PATHINFO_EXTENSION));
+            $unique_name = bin2hex(random_bytes(5)) . "_" . time() . "." . $ext;
+            $mime_type =$_FILES["media"]["type"];
 
-        if ($http_code !== 200 &&$http_code !== 201) {
-            echo '<div style="background:#161b2c; color:#ff5555; padding:30px; font-family:sans-serif; border: 2px solid red;">';
-            echo '<h3>Upload Failed!</h3>';
-            echo '<b>HTTP Code:</b> ' . $http_code . '<br><br>';
-            echo '<b>Supabase Response:</b> <pre>' . htmlspecialchars($response) . '</pre><br>';
-            echo '<a href="index.php" style="color:white; background:#6366f1; padding:10px 20px; text-decoration:none; border-radius:8px; display:inline-block;">Go Back</a>';
-            echo '</div>';
-            exit;
-        }
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, "$supabase_url/storage/v1/object/$bucket_name/$unique_name");
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($tmp_name));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                "Authorization: Bearer $supabase_key",
+                "apikey: $supabase_key",
+                "Content-Type: $mime_type"
+            ]);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            
+            $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
 
+            if ($http_code !== 200 &&$http_code !== 201) {
+                echo '<div style="background:#161b2c; color:#ff5555; padding:30px; font-family:sans-serif; border: 2px solid red;">';
+                echo '<h3>Upload Failed!</h3>';
+                echo '<b>HTTP Code:</b> ' . $http_code . '<br><br>';
+                echo '<b>Supabase Response:</b> <pre>' . htmlspecialchars($response) . '</pre><br>';
+                echo '<a href="index.php" style="color:white; background:#6366f1; padding:10px 20px; text-decoration:none; border-radius:8px; display:inline-block;">Go Back</a>';
+                echo '</div>';
+                exit;
+            }
+        }
         header("Location: index.php"); exit;
     }
 }
@@ -288,7 +284,7 @@ $js_media = json_encode($all_media);
             document.body.style.overflow = 'auto';
         }
 
-        function changeImg(step) {
+        function changeImg(sitep) {
             current = (current + step + media.length) % media.length;
             rotation = 0;
             updateSlider();
