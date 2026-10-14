@@ -19,17 +19,14 @@ function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "$url/storage/v1/object/list/$bucket");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+    // Minimal payload taaki Supabase saari files return kare
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-        "prefix" => "",
-        "limit" => 100,
-        "offset" => 0,
-        "sortBy" => ["column" => "name", "order" => "desc"]
+        "prefix" => ""
     ]));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "Authorization: Bearer $key",
         "apikey: $key",
-        "Content-Type: application/json",
-        "Accept: application/json"
+        "Content-Type: application/json"
     ]);
     $result = curl_exec($ch);
     curl_close($ch);$files_data = json_decode($result, true);$media = [];
