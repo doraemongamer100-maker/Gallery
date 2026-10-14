@@ -15,7 +15,7 @@ if (isset($_POST['login'])) {
     }
 }
 
-// Updated function to fetch file list from Supabase Storage
+// Debugging function to check Supabase response
 function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "$url/storage/v1/object/list/$bucket");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -32,7 +32,16 @@ function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
         "Content-Type: application/json"
     ]);
     $result = curl_exec($ch);
-    curl_close($ch);$files_data = json_decode($result, true);$media = [];
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // Screen par response print karne ke liye
+    echo "<div style='background:#000; color:#0f0; padding:20px; z-index:99999; position:relative; font-family:monospace;'>";
+    echo "HTTP Code: $http_code <br>";
+    echo "Raw Response: " . htmlspecialchars($result);
+    echo "</div>";
+
+    $files_data = json_decode($result, true);$media = [];
     if (is_array($files_data)) {
         foreach ($files_data as$file) {
             if (isset($file['name']) &&$file['name'] !== '.emptyFolderPlaceholder') {
