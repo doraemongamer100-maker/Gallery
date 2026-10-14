@@ -2,7 +2,7 @@
 session_start();
 $correct_password = "101020"; 
 
-// Supabase Configuration (Aapke credentials ke sath configured)
+// Supabase Configuration
 $supabase_url = "https://hzcmrwztdamvojsypffp.supabase.co";
 $supabase_key = "sb_publishable_SXOPOim6WzVkezP4B8cZRg_YcOKnPPT";
 $bucket_name = "gallery"; // Supabase me is naam se public bucket banayein
@@ -32,7 +32,6 @@ function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     $result = curl_exec($ch);
     curl_close($ch);$files_data = json_decode($result, true);$media = [];
     if (is_array($files_data)) {
-        // Sort by created_at desc
         usort($files_data, function($a,$b) {
             return strtotime($b['created_at'] ?? 'now') - strtotime($a['created_at'] ?? 'now');
         });
@@ -65,7 +64,7 @@ if (isset($_SESSION['admin_mode'])) {
         header("Location: index.php"); exit;
     }
 
-    // Upload file directly to Supabase Storage
+    // Upload file directly to Supabase Storage with Debugging
     if (isset($_POST['submit']) && !empty($_FILES["media"]["name"])) {
         $ext = strtolower(pathinfo($_FILES["media"]["name"], PATHINFO_EXTENSION));
         $unique_name = bin2hex(random_bytes(5)) . "_" . time() . "." . $ext;
@@ -82,8 +81,26 @@ if (isset($_SESSION['admin_mode'])) {
             "apikey: $supabase_key",
             "Content-Type: $mime_type"
         ]);
-        curl_exec($ch);
+        
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        
+        if (curl_errno($ch)) {
+            echo '<div style="background:red; color:white; padding:20px; font-family:sans-serif;">Curl error: ' . curl_error($ch) . '</div>';
+            exit;
+        }
         curl_close($ch);
+
+        // Agar HTTP Code 200 ya 201 nahi hai toh error display karega
+        if ($http_code !== 200 &&$http_code !== 201) {
+            echo '<div style="background:#161b2c; color:#ff5555; padding:30px; font-family:sans-serif; border: 2px solid red;">';
+            echo '<h3>Upload Failed!</h3>';
+            echo '<b>HTTP Code:</b> ' . $http_code . '<br><br>';
+            echo '<b>Supabase Response:</b> <pre>' . htmlspecialchars($response) . '</pre><br>';
+            echo '<a href="index.php" style="color:white; background:#6366f1; padding:10px 20px; text-decoration:none; border-radius:8px; display:inline-block;">Go Back</a>';
+            echo '</div>';
+            exit;
+        }
 
         header("Location: index.php"); exit;
     }
@@ -98,7 +115,7 @@ $js_media = json_encode($all_media);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krish Singh </title>
+    <title>Krish Singh 🚀</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
