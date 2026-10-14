@@ -15,14 +15,14 @@ if (isset($_POST['login'])) {
     }
 }
 
-// Dynamic function to fetch files from Supabase Storage
+// Function to fetch files from Supabase Storage
 function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "$url/storage/v1/object/list/$bucket");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
         "prefix" => "",
-        "limit" => 100,
+        "limit" => 500,
         "offset" => 0,
         "sortBy" => ["column" => "name", "order" => "desc"]
     ]));
