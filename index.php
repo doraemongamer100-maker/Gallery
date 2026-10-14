@@ -5,7 +5,7 @@ $correct_password = "101020";
 // Supabase Configuration
 $supabase_url = "https://hzcmrwztdamvojsypffp.supabase.co";
 $supabase_key = "sb_publishable_SXOPOim6WzVkezP4B8cZRg_YcOKnPPT";
-$bucket_name = "gallery"; // Supabase me is naam se public bucket banayein
+$bucket_name = "gallery"; 
 
 if (isset($_GET['logout'])) { session_destroy(); header("Location: index.php"); exit; }
 
@@ -15,14 +15,16 @@ if (isset($_POST['login'])) {
     }
 }
 
-// Supabase se media list fetch karne ka function
+// Updated function to fetch file list from Supabase Storage
 function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "$url/storage/v1/object/list/$bucket");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
         "prefix" => "",
-        "sortBy" => ["column" => "created_at", "order" => "desc"]
+        "limit" => 100,
+        "offset" => 0,
+        "sortBy" => ["column" => "name", "order" => "desc"]
     ]));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "Authorization: Bearer $key",
@@ -32,9 +34,6 @@ function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     $result = curl_exec($ch);
     curl_close($ch);$files_data = json_decode($result, true);$media = [];
     if (is_array($files_data)) {
-        usort($files_data, function($a,$b) {
-            return strtotime($b['created_at'] ?? 'now') - strtotime($a['created_at'] ?? 'now');
-        });
         foreach ($files_data as$file) {
             if (isset($file['name']) &&$file['name'] !== '.emptyFolderPlaceholder') {
                 $media[] = "$url/storage/v1/object/public/$bucket/" . $file['name'];
@@ -64,7 +63,7 @@ if (isset($_SESSION['admin_mode'])) {
         header("Location: index.php"); exit;
     }
 
-    // Upload file directly to Supabase Storage with Debugging
+    // Upload file directly to Supabase Storage
     if (isset($_POST['submit']) && !empty($_FILES["media"]["name"])) {
         $ext = strtolower(pathinfo($_FILES["media"]["name"], PATHINFO_EXTENSION));
         $unique_name = bin2hex(random_bytes(5)) . "_" . time() . "." . $ext;
@@ -91,7 +90,6 @@ if (isset($_SESSION['admin_mode'])) {
         }
         curl_close($ch);
 
-        // Agar HTTP Code 200 ya 201 nahi hai toh error display karega
         if ($http_code !== 200 &&$http_code !== 201) {
             echo '<div style="background:#161b2c; color:#ff5555; padding:30px; font-family:sans-serif; border: 2px solid red;">';
             echo '<h3>Upload Failed!</h3>';
