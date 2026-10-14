@@ -15,6 +15,7 @@ if (isset($_POST['login'])) {
     }
 }
 
+// Dynamic function to fetch files from Supabase Storage
 function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "$url/storage/v1/object/list/$bucket");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -42,21 +43,7 @@ function getSupabaseFiles($url,$key, $bucket) {$ch = curl_init();
                 $media[] = "$url/storage/v1/object/public/$bucket/" . $file['name'];
             }
         }
-    } 
-    
-    // Fallback files to make sure gallery is never blank
-    if (empty($media)) {$fallback_files = [
-            "21f683d85b_1791995568.jpg",
-            "37266bed13_1791995550.jpg",
-            "5f303b0022_1791096239.jpg",
-            "7026b6c90b_1791096107.jpg",
-            "bf41e9865e_1791995535.jpg"
-        ];
-        foreach ($fallback_files as$fname) {
-            $media[] = "$url/storage/v1/object/public/$bucket/" . $fname;
-        }
     }
-    
     return $media;
 }
 
@@ -74,13 +61,14 @@ if (isset($_SESSION['admin_mode'])) {
                 "Authorization: Bearer $supabase_key",
                 "apikey: $supabase_key"
             ]);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_exec($ch);
             curl_close($ch);
         }
         header("Location: index.php"); exit;
     }
 
-    // Upload file directly to Supabase Storage with safety check
+    // Upload file directly to Supabase Storage
     if (isset($_POST['submit']) && isset($_FILES["media"]) && $_FILES["media"]["error"] === UPLOAD_ERR_OK) {
         $tmp_name =$_FILES["media"]["tmp_name"];
         
@@ -284,7 +272,7 @@ $js_media = json_encode($all_media);
             document.body.style.overflow = 'auto';
         }
 
-        function changeImg(sitep) {
+        function changeImg(step) {
             current = (current + step + media.length) % media.length;
             rotation = 0;
             updateSlider();
